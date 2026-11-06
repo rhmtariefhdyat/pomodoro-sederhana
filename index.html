@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pomodoro Sederhana</title>
+<style>
+  :root { --bg:#fff1f0; --fg:#3b1d1a; --accent:#e5533d; }
+  body.istirahat { --bg:#e8f6ee; --accent:#2f9e63; --fg:#14352383; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+         background:var(--bg); color:#222; font-family:system-ui,sans-serif; transition:background .4s; }
+  .kartu { background:#fff; border-radius:24px; padding:32px; width:min(92vw,380px); text-align:center;
+           box-shadow:0 10px 30px rgba(0,0,0,.08); }
+  h1 { margin:0 0 4px; font-size:1.3rem; }
+  .mode { color:var(--accent); font-weight:600; margin-bottom:12px; }
+  .waktu { font-size:4.5rem; font-weight:700; font-variant-numeric:tabular-nums; margin:8px 0 20px; }
+  .tombol { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  button { border:0; border-radius:12px; padding:12px 20px; font-size:1rem; cursor:pointer;
+           background:var(--accent); color:#fff; font-weight:600; }
+  button.sekunder { background:#eee; color:#333; }
+  .info { margin-top:18px; color:#666; font-size:.9rem; }
+  .pengaturan { margin-top:14px; display:flex; gap:12px; justify-content:center; font-size:.85rem; color:#555; }
+  .pengaturan input { width:56px; padding:4px; border:1px solid #ddd; border-radius:8px; }
+</style>
+</head>
+<body>
+<main class="kartu">
+  <h1>Pomodoro Sederhana</h1>
+  <div class="mode" id="mode">Fokus</div>
+  <div class="waktu" id="waktu">25:00</div>
+  <div class="tombol">
+    <button id="mulai">Mulai</button>
+    <button id="reset" class="sekunder">Reset</button>
+    <button id="lewati" class="sekunder">Lewati</button>
+  </div>
+  <div class="pengaturan">
+    <label>Fokus (menit) <input type="number" id="menitFokus" value="25" min="1" max="120"></label>
+    <label>Istirahat (menit) <input type="number" id="menitIstirahat" value="5" min="1" max="60"></label>
+  </div>
+  <div class="info">Sesi fokus selesai hari ini: <b id="hitung">0</b></div>
+</main>
+
+<script>
+  const $ = id => document.getElementById(id);
+  let mode = 'fokus', sisa = 25 * 60, timer = null;
+  let hitung = Number(localStorage.getItem('pomodoro-' + new Date().toDateString())) || 0;
+  $('hitung').textContent = hitung;
+
+  const durasi = () => (mode === 'fokus' ? $('menitFokus').value : $('menitIstirahat').value) * 60;
+
+  function tampil() {
+    const m = String(Math.floor(sisa / 60)).padStart(2, '0');
+    const s = String(sisa % 60).padStart(2, '0');
+    $('waktu').textContent = m + ':' + s;
+    $('mode').textContent = mode === 'fokus' ? 'Fokus' : 'Istirahat';
+    document.body.classList.toggle('istirahat', mode !== 'fokus');
+    document.title = m + ':' + s + ' - Pomodoro';
+  }
+
+  function ganti() {
+    if (mode === 'fokus') {
+      hitung++;
+      localStorage.setItem('pomodoro-' + new Date().toDateString(), hitung);
+      $('hitung').textContent = hitung;
+    }
+    mode = mode === 'fokus' ? 'istirahat' : 'fokus';
+    sisa = durasi();
+    tampil();
+  }
+
+  function jalan() {
+    sisa--;
+    if (sisa <= 0) {
+      try { new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=').play(); } catch (e) {}
+      ganti();
+      return;
+    }
+    tampil();
+  }
+
+  $('mulai').onclick = () => {
+    if (timer) { clearInterval(timer); timer = null; $('mulai').textContent = 'Lanjut'; }
+    else { timer = setInterval(jalan, 1000); $('mulai').textContent = 'Jeda'; }
+  };
+  $('reset').onclick = () => {
+    clearInterval(timer); timer = null; mode = 'fokus'; sisa = durasi();
+    $('mulai').textContent = 'Mulai'; tampil();
+  };
+  $('lewati').onclick = () => { mode = mode === 'fokus' ? 'istirahat' : 'fokus'; sisa = durasi(); tampil(); };
+  ['menitFokus', 'menitIstirahat'].forEach(id => $(id).onchange = () => { if (!timer) { sisa = durasi(); tampil(); } });
+  tampil();
+</script>
+</body>
+</html>
